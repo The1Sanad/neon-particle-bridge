@@ -10,40 +10,73 @@ interface ParticleProps {
 const EnergySphere = ({ position, color, radius }: { position: [number, number, number]; color: string; radius: number }) => {
   const sphereRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const wispy1Ref = useRef<THREE.Mesh>(null);
+  const wispy2Ref = useRef<THREE.Mesh>(null);
   
   useFrame(({ clock }) => {
-    if (sphereRef.current && glowRef.current) {
+    if (sphereRef.current && glowRef.current && wispy1Ref.current && wispy2Ref.current) {
       const t = clock.getElapsedTime();
-      // Organic pulsing effect
-      sphereRef.current.scale.x = 1 + Math.sin(t * 1.5) * 0.1;
-      sphereRef.current.scale.y = 1 + Math.sin(t * 1.2) * 0.1;
-      sphereRef.current.scale.z = 1 + Math.sin(t * 1.8) * 0.1;
       
-      // Rotate the glow effect independently
-      glowRef.current.rotation.y = t * 0.3;
-      glowRef.current.rotation.z = t * 0.2;
+      // Core sphere pulsing
+      const pulse = Math.sin(t * 1.5) * 0.15;
+      sphereRef.current.scale.set(1 + pulse, 1 + pulse, 1 + pulse);
+      
+      // Rotating wispy layers
+      wispy1Ref.current.rotation.x = t * 0.2;
+      wispy1Ref.current.rotation.y = t * 0.3;
+      wispy2Ref.current.rotation.x = -t * 0.25;
+      wispy2Ref.current.rotation.z = t * 0.35;
+      
+      // Outer glow breathing effect
+      const glowPulse = Math.sin(t * 0.8) * 0.2 + 1.8;
+      glowRef.current.scale.set(glowPulse, glowPulse, glowPulse);
     }
   });
 
   return (
     <group>
+      {/* Core sphere */}
       <mesh position={position} ref={sphereRef}>
-        <sphereGeometry args={[radius, 64, 64]} />
+        <sphereGeometry args={[radius * 0.6, 64, 64]} />
         <meshPhongMaterial 
           color={color}
           emissive={color}
           emissiveIntensity={2}
           transparent
-          opacity={0.6}
+          opacity={0.7}
         />
       </mesh>
-      {/* Outer glow effect */}
-      <mesh position={position} ref={glowRef}>
-        <sphereGeometry args={[radius * 1.5, 32, 32]} />
+      
+      {/* Wispy layers */}
+      <mesh position={position} ref={wispy1Ref}>
+        <sphereGeometry args={[radius * 1.2, 32, 32]} />
         <meshPhongMaterial
           color={color}
           transparent
           opacity={0.15}
+          wireframe
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      <mesh position={position} ref={wispy2Ref}>
+        <sphereGeometry args={[radius * 0.9, 32, 32]} />
+        <meshPhongMaterial
+          color={color}
+          transparent
+          opacity={0.2}
+          wireframe
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      {/* Outer glow */}
+      <mesh position={position} ref={glowRef}>
+        <sphereGeometry args={[radius * 1.4, 32, 32]} />
+        <meshPhongMaterial
+          color={color}
+          transparent
+          opacity={0.1}
           side={THREE.BackSide}
         />
       </mesh>
@@ -66,24 +99,28 @@ const Particles = ({ count }: ParticleProps) => {
       // Create a more organic bridge shape
       const t = Math.random();
       const angle = t * Math.PI * 2;
-      const radius = Math.random() * 0.5;
       
-      const bridgeWidth = Math.sin(t * Math.PI) * 1.5;
-      const curveHeight = Math.sin(t * Math.PI) * 0.5;
+      // Wider spread for particles
+      const bridgeWidth = Math.sin(t * Math.PI) * 2.5;
+      const curveHeight = Math.sin(t * Math.PI) * 0.8;
       
-      positions[i3] = -4 + t * 8; // x: interpolate from -4 to 4
+      // More concentrated particles near spheres
+      const concentration = Math.pow(Math.sin(t * Math.PI), 2);
+      const radius = (Math.random() * 0.8 + 0.2) * concentration;
+      
+      positions[i3] = -6 + t * 12; // x: wider spread
       positions[i3 + 1] = curveHeight + Math.cos(angle) * radius * bridgeWidth;
       positions[i3 + 2] = Math.sin(angle) * radius * bridgeWidth;
       
-      // Enhanced color interpolation
+      // Enhanced color blending
       if (t < 0.5) {
-        color.set('#50E991').lerp(new THREE.Color('#FFFFFF'), t * 2);
+        color.set('#50E991').lerp(new THREE.Color('#FFFFFF'), Math.pow(t * 2, 1.5));
       } else {
-        color.set('#FFFFFF').lerp(new THREE.Color('#FF3D5A'), (t - 0.5) * 2);
+        color.set('#FFFFFF').lerp(new THREE.Color('#FF3D5A'), Math.pow((t - 0.5) * 2, 1.5));
       }
       
       color.toArray(colors, i3);
-      sizes[i] = Math.random() * 0.2 + 0.1;
+      sizes[i] = (Math.random() * 0.3 + 0.1) * concentration;
     }
     
     return { positions, colors, sizes };
@@ -100,15 +137,15 @@ const Particles = ({ count }: ParticleProps) => {
       const x = positionArray[i3];
       
       // More organic movement
-      const frequency = 1.2;
-      const amplitude = 0.15;
+      const frequency = 0.8;
+      const amplitude = 0.2;
       
       positionArray[i3 + 1] += Math.sin(time * frequency + x) * amplitude * 0.02;
-      positionArray[i3 + 2] += Math.cos(time * frequency + x) * amplitude * 0.02;
+      positionArray[i3 + 2] += Math.cos(time * frequency + x * 1.2) * amplitude * 0.02;
       
       // Keep particles within bounds
-      if (Math.abs(positionArray[i3 + 1]) > 2) positionArray[i3 + 1] *= 0.95;
-      if (Math.abs(positionArray[i3 + 2]) > 2) positionArray[i3 + 2] *= 0.95;
+      if (Math.abs(positionArray[i3 + 1]) > 3) positionArray[i3 + 1] *= 0.95;
+      if (Math.abs(positionArray[i3 + 2]) > 3) positionArray[i3 + 2] *= 0.95;
     }
     
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
@@ -138,10 +175,10 @@ const Particles = ({ count }: ParticleProps) => {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.1}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.6}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
       />
@@ -151,12 +188,12 @@ const Particles = ({ count }: ParticleProps) => {
 
 export function ParticleBridge() {
   const isMobile = useIsMobile();
-  const particleCount = isMobile ? 2000 : 5000;
+  const particleCount = isMobile ? 3000 : 8000;
 
   return (
     <group>
-      <EnergySphere position={[-4, 0, 0]} color="#50E991" radius={1.2} />
-      <EnergySphere position={[4, 0, 0]} color="#FF3D5A" radius={1.2} />
+      <EnergySphere position={[-6, 0, 0]} color="#50E991" radius={1.8} />
+      <EnergySphere position={[6, 0, 0]} color="#FF3D5A" radius={1.8} />
       <Particles count={particleCount} />
     </group>
   );
