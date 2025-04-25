@@ -21,24 +21,31 @@ export function ParticleBridge({
   totalHeight 
 }: ParticleBridgeProps) {
   const isMobile = useIsMobile();
-  const particleCount = isMobile ? 3000 : 8000;
+  
+  // Increase particle count for more detailed visuals
+  const particleCount = isMobile ? 4000 : 12000;
 
   return (
     <group>
+      {/* Left energy sphere (green) */}
       <EnergySphere 
         position={[-6 + (offsetX * totalWidth / windowWidth), 
                   0 + (offsetY * totalHeight / windowHeight), 
                   0]} 
         color="#50E991" 
-        radius={1.8} 
+        radius={2.2} 
       />
+      
+      {/* Right energy sphere (red) */}
       <EnergySphere 
         position={[6 + (offsetX * totalWidth / windowWidth), 
                   0 + (offsetY * totalHeight / windowHeight), 
                   0]} 
         color="#FF3D5A" 
-        radius={1.8} 
+        radius={2.2} 
       />
+      
+      {/* Connecting particle bridge */}
       <Particles 
         count={particleCount} 
         offsetX={offsetX}
